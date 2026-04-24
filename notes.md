@@ -112,6 +112,19 @@ Array([1.       , 2.7182817, 7.389056 ], dtype=float32)
 
 Auto-vectorisation
 
+vmap clearly just maps over the vertical (first) axis of the parameter, which 
+is normally our batch dimension.  I think they do muddy the waters a bit by
+throwing in @jit for the "look, this is faster" examples.  Adding @jit
+to their "naively batched" makes it faster than the non-jitted manually batched one!
+But keeping jittedness constant, the manually batched is faster than the naively
+batched one.
+
+Basically, the ordering is correct but the (mis)use of jit exaggerates the
+effect.
+
+
+Pseudorandom numbers
+
 
 
 
