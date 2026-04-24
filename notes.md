@@ -125,6 +125,46 @@ effect.
 
 Pseudorandom numbers
 
+Appears to be to avoid race conditions inherent in global state, plus
+multi-device stuff.  Interesting.  
+
+Not just a simple relacement for the internal state that changes itself,
+though -- 
+
+key = random.key(43)
+print(random.normal(key))
+print(random.normal(key))
+
+...prints
+
+0.07520543
+0.07520543
+
+So if you want random numbers that change, you need to split it.  
+
+Needs thought.  More in the 101 course, but I suspect I'll need to use
+it to understand it.
+
+
+Debugging
+
+The issue here appears to be something like, running JAX code (at least, with jit)
+just builds
+a "trace" (~= compute graph?), and doesn't do the calculations.  So if you
+print intermediate results, you get a placeholder, not the real value it has
+during execution.  The actual calculations only happen when you realise the
+result, hence the block_until_ready calls we've had to use with the 
+%timeit stuff.  This fits in with the functional nature of things.
+
+Relevantly:
+
+JAX is a language for expressing and composing transformations of numerical programs. JAX is also able to compile numerical programs for CPU or accelerators (GPU/TPU). JAX works great for many numerical and scientific programs, but only if they are written with certain constraints that we describe below.
+
+So perhaps it's best to think of JAX as being more of a new language that 
+happens to look like Python.  Execution of the code is just to generate the
+trace, which is then compiled to appropriate operations, including CUDA or
+whatever TPUs use.  This is executed at certain points -- block_until_ready, 
+or presumably other things (though not print!)
 
 
 
@@ -132,4 +172,7 @@ Pseudorandom numbers
 
 
 [^1]: I'm glossing that as "derivatives for functions with a non-scalar result"
-    for now -- will learn more later.
+    for now -- will learn more later.  Pronounced jac-O-bian, not to be confused
+    with eg plays which are jaco-BE-an -- spelling diff as well as pronunication
+    and meaning.  Joke in there somewhere.
+
