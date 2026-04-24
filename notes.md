@@ -89,6 +89,34 @@ That's much closer to the mathematical formalism than the PyTorch way.
 Of course, there may be something more procedural like PyTorch that I'll
 learn later.
 
+The extensions to grad -- Jacobian matrices[^1], and so on -- are a bit of a 
+side quest for now.  I was initially concerned that I might need to learn
+it in order to work with an LLM -- after all, there's lots of non-scalar
+stuff going on in there.  But crucially, the thing we want to actually 
+differentiate against, the loss, is scalar.  And it doesn't matter what
+goes on in the calculation of that loss -- because the end result is scalar, you can 
+just use grad on it.  Sanity check:
+
+print(grad(jnp.exp)(x_small))
+TypeError: Gradient only defined for scalar-output functions. Output had shape: (3,).
+
+...but...
+
+def foo(X):
+    return jnp.sum(jnp.exp(X))
+
+grad(foo)(x_small)
+
+Array([1.       , 2.7182817, 7.389056 ], dtype=float32)
+
+
+Auto-vectorisation
 
 
 
+
+
+
+
+[^1]: I'm glossing that as "derivatives for functions with a non-scalar result"
+    for now -- will learn more later.
