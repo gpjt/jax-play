@@ -273,6 +273,14 @@ See the notebook for examples.
     static_argnums.
 
 
+Out of bounds indexing
+
+Their rationale for this (hard to raise from CUDA) surprised me, as 
+I'm sure I've seen PyTorch receive errors from CUDA.  But perhaps it's
+more of a "this is hard" or even "this is hard on TPUs" or something
+like that.
+
+
 
 
 
