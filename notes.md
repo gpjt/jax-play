@@ -1,4 +1,4 @@
-Just like PyTorch, defines itself in terms of NumPy 
+Just like PyTorch, defines itself in terms of NumPy
 
 https://docs.jax.dev/en/latest/notebooks/thinking_in_jax.html
 
@@ -12,7 +12,7 @@ Automatic vectorisation -- should be interesting.
 
 "In local or distributed settings" -- auto-multi-GPU?  Multi-node?
 "JAX arrays can be *sharded* across multiple devices for parallel computation."
-the array has "devices()" rather than "device" and a "sharding" 
+the array has "devices()" rather than "device" and a "sharding"
 property.
 
 Talks about arrays, nothing about tensors so far.  Ah, but NumPy arrays are
@@ -35,7 +35,7 @@ norm_compiled(X)
 X = jnp.array(np.random.rand(100, 10, 3))
 norm_compiled(X)
 
-...would fail.  
+...would fail.
 
 Their example:
 
@@ -47,17 +47,25 @@ get_negatives(x)
 
 jit(get_negatives)(x)
 
-Does indeed fail, but when they say 
+Does indeed fail, but when they say
 
 This is because the function generates an array whose shape is not known at compile time
 
 ...it is misleading, maybe?  Need to read more.  Either (a) the function is
 recompiled from scratch for every call, so it must be able to work out the shape
 of every array at the start, or (b) it's not, and it's capable of holding kind of
-static functions to calculate the sizes (eg. inputs are m x n and n x p, we're 
+static functions to calculate the sizes (eg. inputs are m x n and n x p, we're
 multiplying them, so I can store the rule 'output is m x p')
 
 Hopefully will become clear in JAX 101, which has a more detailed section.
+
+More from later:
+
+JAX code used within transforms like jax.jit, jax.vmap, jax.grad, etc.
+requires all output arrays and intermediate arrays to have static shape:
+that is, the shape cannot depend on values within other arrays.
+
+That's clearer.
 
 
 The gradient stuff is interesting.  Trying to backport it to the PyTorch
@@ -89,12 +97,12 @@ That's much closer to the mathematical formalism than the PyTorch way.
 Of course, there may be something more procedural like PyTorch that I'll
 learn later.
 
-The extensions to grad -- Jacobian matrices[^1], and so on -- are a bit of a 
+The extensions to grad -- Jacobian matrices[^1], and so on -- are a bit of a
 side quest for now.  I was initially concerned that I might need to learn
 it in order to work with an LLM -- after all, there's lots of non-scalar
-stuff going on in there.  But crucially, the thing we want to actually 
+stuff going on in there.  But crucially, the thing we want to actually
 differentiate against, the loss, is scalar.  And it doesn't matter what
-goes on in the calculation of that loss -- because the end result is scalar, you can 
+goes on in the calculation of that loss -- because the end result is scalar, you can
 just use grad on it.  Sanity check:
 
 print(grad(jnp.exp)(x_small))
@@ -112,7 +120,7 @@ Array([1.       , 2.7182817, 7.389056 ], dtype=float32)
 
 Auto-vectorisation
 
-vmap clearly just maps over the vertical (first) axis of the parameter, which 
+vmap clearly just maps over the vertical (first) axis of the parameter, which
 is normally our batch dimension.  I think they do muddy the waters a bit by
 throwing in @jit for the "look, this is faster" examples.  Adding @jit
 to their "naively batched" makes it faster than the non-jitted manually batched one!
@@ -126,10 +134,10 @@ effect.
 Pseudorandom numbers
 
 Appears to be to avoid race conditions inherent in global state, plus
-multi-device stuff.  Interesting.  
+multi-device stuff.  Interesting.
 
 Not just a simple relacement for the internal state that changes itself,
-though -- 
+though --
 
 key = random.key(43)
 print(random.normal(key))
@@ -140,7 +148,7 @@ print(random.normal(key))
 0.07520543
 0.07520543
 
-So if you want random numbers that change, you need to split it.  
+So if you want random numbers that change, you need to split it.
 
 Needs thought.  More in the 101 course, but I suspect I'll need to use
 it to understand it.
@@ -153,17 +161,17 @@ just builds
 a "trace" (~= compute graph?), and doesn't do the calculations.  So if you
 print intermediate results, you get a placeholder, not the real value it has
 during execution.  The actual calculations only happen when you realise the
-result, hence the block_until_ready calls we've had to use with the 
+result, hence the block_until_ready calls we've had to use with the
 %timeit stuff.  This fits in with the functional nature of things.
 
 Relevantly:
 
 JAX is a language for expressing and composing transformations of numerical programs. JAX is also able to compile numerical programs for CPU or accelerators (GPU/TPU). JAX works great for many numerical and scientific programs, but only if they are written with certain constraints that we describe below.
 
-So perhaps it's best to think of JAX as being more of a new language that 
+So perhaps it's best to think of JAX as being more of a new language that
 happens to look like Python.  Execution of the code is just to generate the
 trace, which is then compiled to appropriate operations, including CUDA or
-whatever TPUs use.  This is executed at certain points -- block_until_ready, 
+whatever TPUs use.  This is executed at certain points -- block_until_ready,
 or presumably other things (though not print!)
 
 Obviously this is a driver for it being functionally pure, or at least wanting
@@ -184,7 +192,7 @@ print ("Second call: ", jit(impure_print_side_effect)(5.))
 # JAX re-runs the Python function when the type or shape of the argument changes
 print ("Third call, different type: ", jit(impure_print_side_effect)(jnp.array([5.])))
 
-...only prints 'Executing function' for the first and the last, because it 
+...only prints 'Executing function' for the first and the last, because it
 is only then that the Python code is re-run.  In the second, it can re-use
 the trace for the first one.
 
@@ -210,12 +218,12 @@ sum of 0 to 9.  Most importantly, even if the loop is unwound, this will work.
 (Per https://docs.jax.dev/en/latest/_autosummary/jax.lax.scan.html#jax.lax.scan
 "native Python loop constructs in an jit() function are unrolled, leading to large XLA computations")
 
-By contrast, with 
+By contrast, with
 
 iterator = iter(range(10))
 print(lax.fori_loop(0, 10, lambda i,x: x+next(iterator), 0))
 
-...then each internal call to next(iterator) should return a different result, 
+...then each internal call to next(iterator) should return a different result,
 
 which is not functional.  JAX will assume that it actually is
 functional, so when the first call returns zero it will likely cache it and so you
@@ -229,7 +237,7 @@ though I found this interesting:
 
 Now, what "functional" means with complex parameters like objects
 is can be complicated.  If foo is an object of type Foo, then can we
-cache the result of 
+cache the result of
 
 bar(foo)
 
@@ -238,13 +246,13 @@ bar(foo)
 @jit
 bar(...)
 
-The sharp bit page covers this purely on the basis of methods, but 
+The sharp bit page covers this purely on the basis of methods, but
 problem exists for any jit'ed function taking an object.
 
 See the notebook for examples.
 
 1.  By default JAX will assume that it doesn't have any way to tell and
-    if it gets something that isn't an array (or a PyTree, see later), 
+    if it gets something that isn't an array (or a PyTree, see later),
     it barfs.  So we get past that
     by adding in the static_argnums parameter (which can just be a single
     index for a parameter we're saying "it's OK" about, or a list) to the call
@@ -263,22 +271,113 @@ See the notebook for examples.
     seems to make it a non-solution.
 
 3.  Their real solution is to make the class a PyTree.  This appears to be a way
-    that an object can expose its inner structure in a way that allows JAX to 
+    that an object can expose its inner structure in a way that allows JAX to
     understand it and treat it as a collection of perhaps-mutable things.  You
     essentially say "these are the mutable fields" and "these are the immutable
     fields" and then it can cache sanely.
 
     Importantly, if you do that, then the foo parameter is *no longer static*.
-    So you actually should use the simple @jit decorator with it -- no 
+    So you actually should use the simple @jit decorator with it -- no
     static_argnums.
 
 
 Out of bounds indexing
 
-Their rationale for this (hard to raise from CUDA) surprised me, as 
+Their rationale for this (hard to raise from CUDA) surprised me, as
 I'm sure I've seen PyTorch receive errors from CUDA.  But perhaps it's
 more of a "this is hard" or even "this is hard on TPUs" or something
 like that.
+
+Interesting detail with their example of how to use .at[].get to provide NaNs.
+Without that, they have this (which clamps the index):
+
+jnp.arange(10)[11]
+
+...but with it, they use this:
+
+jnp.arange(10.0).at[11].get(mode='fill', fill_value=jnp.nan)
+
+Note the 10.0 in the arange.  This makes sense!  If you use 10, you get an array
+of ints, and so there's no such thing as NaN, which is an FP concept.  So this:
+
+jnp.arange(10).at[11].get(mode="fill", fill_value=jnp.nan)
+
+...gives you this:
+
+Array(-2147483648, dtype=int32)
+
+
+rather than
+
+Array(nan, dtype=float32)
+
+
+
+Non-array inputs
+
+Interesting.  It looks like the craziness that leads to one node in the JAXPR
+is actually the jnp.array:
+
+make_jaxpr(jnp.array)(x)
+
+{ lambda ; a:i32[] b:i32[] c:i32[] d:i32[] e:i32[] f:i32[] g:i32[] h:i32[] i:i32[]
+    j:i32[]. let
+    k:i32[] = convert_element_type[new_dtype=int32 weak_type=False] a
+    l:i32[1] = broadcast_in_dim k
+    m:i32[] = convert_element_type[new_dtype=int32 weak_type=False] b
+    n:i32[1] = broadcast_in_dim m
+    o:i32[] = convert_element_type[new_dtype=int32 weak_type=False] c
+    p:i32[1] = broadcast_in_dim o
+    q:i32[] = convert_element_type[new_dtype=int32 weak_type=False] d
+    r:i32[1] = broadcast_in_dim q
+    s:i32[] = convert_element_type[new_dtype=int32 weak_type=False] e
+    t:i32[1] = broadcast_in_dim s
+    u:i32[] = convert_element_type[new_dtype=int32 weak_type=False] f
+    v:i32[1] = broadcast_in_dim u
+    w:i32[] = convert_element_type[new_dtype=int32 weak_type=False] g
+    x:i32[1] = broadcast_in_dim w
+    y:i32[] = convert_element_type[new_dtype=int32 weak_type=False] h
+    z:i32[1] = broadcast_in_dim y
+    ba:i32[] = convert_element_type[new_dtype=int32 weak_type=False] i
+    bb:i32[1] = broadcast_in_dim ba
+    bc:i32[] = convert_element_type[new_dtype=int32 weak_type=False] j
+    bd:i32[1] = broadcast_in_dim bc
+    be:i32[10] = concatenate[dimension=0] l n p r t v x z bb bd
+  in (be,) }
+
+
+Which matches all but the last line of their example.
+
+
+The second "Dynamic shapes" section is interesting.  On the face of it it's
+just "here's the problem" with a better explanation of what thay mean by "static"
+when talking about array sizes.
+
+However, the workaround they give is relevant.  It has the feel of something
+they've had to add on to deal with the impurity of the work that people actually
+have to do.
+
+The disabled-by-default float64 thing seems a tad odd.  I get that it's not
+that useful for ML code, but it's certainly strange that it doesn't do it
+even if you explicitly ask for it unless you set a flag in your code.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
