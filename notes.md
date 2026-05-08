@@ -454,6 +454,31 @@ broadcast for you.
 
 Automatic differentiation
 
+So, grad(f) works on its own.  You don't need to nail down the actual parameters.
+However, it looks like it's lazy; the actual derivative isn't calculated until
+you do call it on a parameter (which is necessary to get a real value).  So it's
+not some clever symbolic thing.
+
+Their logistic regression example confirms my belief from earlier.  The way you
+work out the gradients is:
+
+* Define a loss function that closes over the inputs and the targets, and takes
+    the weights as parameters
+* Take its gradient and run through the weights
+* You can extract the gradients.  If there are multiple weight arguments, you can
+    either ask for them all to be returned as a tuple (with argnums) or pass them in as
+    a dict and get a dict of grads (plus other clever options using PyTrees)
+
+Their reference to Spivak’s classic Calculus on Manifolds (1965) is telling, as are
+the others.  This is a very mathematical model.  Elegant and beautiful.
+
+On the other hand, jax.value_and_grad looks like a neat convenience function
+for when you need to log the loss as well as apply the grads.
+
+check_grads looks like a useful internal function, not sure how we might use
+it in code ourselves.  Perhaps if we have to do our own "backward pass" stuff?
+
+
 
 
 
