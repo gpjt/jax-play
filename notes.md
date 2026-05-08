@@ -442,6 +442,20 @@ It also makes sense in terms of all of the equality/hash key stuff above.
 This is confirmed in the "JIT and caching" section.
 
 
+Automatic vectorization
+
+Basically vmap appears to add on an extra dimension (by default the first one)
+to parameters (or just some of them) so that you can have your function do a bunch of
+operations at once.  Kind of like an auto-broadcast.
+
+However, it's a convenience thing for your own functions.  jnp.matmul handles
+broadcast for you.
+
+
+Automatic differentiation
+
+
+
 
 
 
