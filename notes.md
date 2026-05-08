@@ -480,6 +480,52 @@ it in code ourselves.  Perhaps if we have to do our own "backward pass" stuff?
 
 
 
+PyTrees
+
+First thought: if this is easy, maybe I was wrong to semi-dismiss it as
+"something clever" in the grad stuff.  My big concern at the moment is:
+
+* I build my LLM.
+* I want to be able to differentiate wrt the weights -- they're a parameter
+    passed in rather than object state.
+* I have to pass in some messy dict and read stuff out as part of the LLM
+    execution.
+
+Maybe that wouldn't be too bad, but it would be nice to have a "weights"
+object, maybe?  Anyway, a PyTree can represent that.
+
+Interesting point -- in a pytree, the elements of a jnp.array are not leaves.
+That makes sense, I think.  You want arrays to be treated as a unit for
+eg. backprop purposes.
+
+Aha!  But they give an MLP example.  And this is where it gets really interesting:
+
+@jax.jit
+def update(params, x, y):
+    grads = jax.grad(loss_fn)(params, x, y)
+    return jax.tree.map(
+        lambda param, grad: param - LEARNING_RATE * grad, params, grads
+    )
+
+Of course!  Because by default the grad function only returns gradients against
+the first parameter, and because it matches the shape of that parameter when it's
+a dict, then we get something shaped just like the params.
+
+So no need to explicitly close over the inputs and targets, you can provide them
+as parameters to the loss function and then grad will just ignore them
+when working out gradients.
+
+And the fact that it matches the shape of a dictionary (or rather a PyTree) when
+calculating the gradients means that they're appropriately shaped to do the update
+with a map!
+
+Moving on.  The "Pytrees and JAX transformations" section is rather poorly explained,
+as the code there is not executable.  I *think* I get it but I'm not sure
+I can put together code that would test my understanding.
+
+
+
+
 
 
 
