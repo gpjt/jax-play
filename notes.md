@@ -362,6 +362,84 @@ that useful for ML code, but it's certainly strange that it doesn't do it
 even if you explicitly ask for it unless you set a flag in your code.
 
 
+On to JAX 101.
+
+Interesting: the jit's dislike of non-pure-functional stuff is so strong
+that it actually drops impure stuff like the appending to a global list
+in the example.  There's literall nothing there to match it!
+
+OK, terminology appears to be:
+
+* When you first run the function (which happens in Python), a tracer
+    is attached to arguments.  These tracers are used to build up the jaxpr.
+    The process of doing that -- that is, the initial execution -- is called
+    a trace.  (Previously I'd been imagining "trace" to mean the recorded
+    sequence of steps, but that's not the case.)
+
+However, the fact that the Python code is actually executed is something
+they regard as an "implementation detail".  That makes sense!  They could
+reasonably write an optimising compiler that did all of the same stuff,
+and never actually ran the Python.
+
+This becomes particularly interesting with the "if" example they give.
+Only the path taken through the branch is recorded by the trace, so the
+jaxpr only includes that.  That makes sense!  While an optimising
+compiler sees the whole program, JAX only sees the JAX functions you're
+calling, so the "if" is invisible to it.
+
+To reiterate, we need to call the function at least once to get the jitted
+version -- it is after all just-in-time, not precompilation.
+
+However, it's interesting that *sometimes* it can detect that the control
+flow has something it cannot trace -- eg their example of this raising an
+error:
+
+def f(x):
+    if x > 0:
+        return x
+    else:
+        return 2 * x
+
+try:
+    jax.jit(f)(10)
+except Exception as ex:
+    print(ex)
+
+How does that differ from this:
+
+def log2_if_rank_2(x):
+    if x.ndim == 2:
+        ln_x = jnp.log(x)
+        ln_2 = jnp.log(2.0)
+        return ln_x / ln_2
+    else:
+        return x
+
+print(jax.make_jaxpr(log2_if_rank_2)(jnp.array([1, 2, 3])))
+
+...?  The latter only recorded the branch taken, whereas the `f` function
+failed to jit.
+
+Dumb idea, is it the use of == instead of >?  Confirmed not.  Likewise
+going through the else branch rather than the if branch is not the problem.
+
+The important thing is that they used .ndim in the working one:
+
+"Traced values within JIT, like x and n here, can only affect control flow via their static attributes: such as shape or dtype, and not via their values."
+
+ndim is clearly one of those static attributes.  And even though you can
+affect control flow with them, you might get weird results.
+
+The static stuff makes a comeback.  I'm reading the static_argnums stuff
+as meaning "you can use this arg as a key into a cache mapping from its values
+to the cached jaxprs that are appropriate when it takes that value".  So if
+you call it with 10, then you get a mapping 10->a jaxpr, and then when you call
+it with 12, likewise 12->jaxpr.  Which makes their comment that you should only
+use it with a limited number of values for that arg make sense.
+
+It also makes sense in terms of all of the equality/hash key stuff above.
+
+This is confirmed in the "JIT and caching" section.
 
 
 
