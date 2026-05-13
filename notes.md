@@ -525,6 +525,88 @@ I can put together code that would test my understanding.
 
 
 
+Pseudorandom numbers
+
+A complete break with NumPy
+
+Intro about numpy makes it clear that there is global state in the form of the current
+random state, set with seed.
+
+Reproducibility: if we're talking a single execution thread with known ordering, then
+we're fine with that.  But of course if:
+
+* Execution order can vary (which the JIT might reasonably do) then the random
+    number stream will be sampled in a different order, so you get different results.
+* If stuff is running in parallel (eg. multiple devices) then you need to sync things
+    to ensure ordering, which is expensive.
+
+So, JAX provides explicit keys that are passed in to the functions that need
+randomness.
+
+Naively, you might expect that these just replace the NumPy-style global state.  But
+that wouldn't help!  For example, if they did, then:
+
+key = random.key(42)
+foo = bar(key) + baz(key)
+
+...would *still* have the ordering constraint -- if it were executed bar, baz, then
+randomness would be different to if we did baz, bar.
+
+So: we use the split function.  This appears to be a functional way of getting
+two things:
+
+1. A key that we can use right now for a random number
+2. A new key, which we basically treat as being our global state to carry along.
+
+So now we could do:
+
+key = random.key(42)
+key_1, key_2 = random.split(key)
+foo = bar(key) + baz(key)
+
+But of course that would leave us with no randomness to use after those (remember
+that key_1 and key_2 are compromised by their use).  So instead we do:
+
+key = random.key(42)
+key, bar_key = random.split(key)
+key, baz_key = random.split(key)
+foo = bar(bar_key) + baz(baz_key)
+
+...and we have key available for future use.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
