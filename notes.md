@@ -575,6 +575,55 @@ foo = bar(bar_key) + baz(baz_key)
 ...and we have key available for future use.
 
 
+Distributed arrays and automatic parallelisation
+
+This is an interesting one.  So there are three ways we can do it:
+
+1. Fully automatic (with some control) -- AUTO
+2. Explicit sharding across devices, but one global view -- EXPLICIT
+3. Manual per-device, which is essentially the PyTorch setup -- MANUAL
+
+The example they give is using (2).  We create an "mesh", which appears
+to be a representation of the devices available -- we're saying we have 8
+CPUs, and we put them into a 4x2 matrix.  We name the axis that is 4 long
+X, and the one that is 2 long Y.
+
+We then create an array x, which is 8x4, and then split it across that
+mesh (so presumably 2 numbers wind up on each device).  Slightly confusingly,
+the "visualize_array_sharding" function appears to show the first axis (our
+X) vertically and the second horizontally, which is not quite what you'd expect,
+but hey.
+
+When we perform operations on it, the results are sharded the same way
+(with transpositions also transposing the structure).
+
+"Communication happens along mesh axes": not sure if this is relevant to
+multi-node?  If it were, conceivably X might be machines and Y GPUs?  That
+said, that would mean that GPU0 on node 0 would be talking to GPU 0 on node
+1, which would be odd...?   Or at least, not obviously optimal.
+
+But they say the mesh layout should reflect the physical connection topology.
+
+OK, this is all very in-depth but not clear how it's useful.  I think I'm
+going to need some real-world examples.
+
+But some thoughts:
+
+* The weird stuff where sharding patterns duplicate data across devices
+    starts making sense when you consider broadcasting.
+
+
+
+
+https://docs.jax.dev/en/latest/multi_process.html
+
+Looks like it *does* scale across nodes!
+
+OK, that one was tough.  Putting a pin in it for now.
+
+
+
+
 
 
 

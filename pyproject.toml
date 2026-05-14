@@ -8,4 +8,5 @@ dependencies = [
     "jax[cuda13]>=0.10.0",
     "jupyter>=1.1.1",
     "matplotlib>=3.10.9",
+    "rich>=15.0.0",
 ]
