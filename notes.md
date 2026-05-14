@@ -741,6 +741,24 @@ graph in order to do a backward pass because it was a concrete set of steps that
 taken.
 
 
+Handling state
+
+This is pretty much what you'd expect.  You can't keep state knocking around because
+it will get JITted out.  They do raise the point that occurred to me:
+
+Handling parameters manually seems fine if you’re dealing with two parameters, but what if it’s a neural net with dozens of layers? You might already be getting worried about two things:
+
+1. Are we supposed to initialize them all manually, essentially repeating what we already write in the forward pass definition?
+
+2. Are we supposed to pipe all these things around manually?
+
+The answer, for pure JAX, appears to be "yes".  So there are libraries built on top
+of JAX that have more "natural", PyTorch-like structures, eg. Flax https://flax.readthedocs.io/en/stable/,
+Equinox https://docs.kidger.site/equinox/, and that old favourite Keras https://keras.io/.
+
+In particular, at https://docs.jaxstack.ai/en/latest/getting_started.html they have a tutorial
+using Flax and Optax
+
 
 
 
