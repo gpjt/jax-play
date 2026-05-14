@@ -644,6 +644,122 @@ that we've already covered.
 
 
 
+Tracing
+
+OK, this is interesting.  When you have @jit on a function, and then
+call it with parameters, it looks like it doesn't actually execute it
+with those parameters initially.  Instead, it runs it with placeholders (*tracers*)
+based on the type/shape of those parameters (the things it's going to use
+for its cache keys).  This then causes it to spit out a compiled version,
+and then it runs *that* on the parameters you provided.
+
+(Note that the static_argnums parameters are passed in as non-tracers,
+which makes sense.)
+
+If you call it again with the same-shaped parameters, then it can use
+the cached version.  If you then call it with differently-shaped parameters,
+the cache lookup fails, so it does a recompile with the same placeholder
+kind of things (but with the new shapes) and then runs the compiled version
+again.
+
+That's how it's able to detect things that look into values of parameters
+and are thus not jit-able.  The looking at the value of one of those placeholders
+is what raises the error, eg in:
+
+@jit
+def g(x):
+    return (x > 0) and (x < 3)
+
+g(2)
+
+We get this:
+
+---------------------------------------------------------------------------
+TracerBoolConversionError                 Traceback (most recent call last)
+Cell In[3], line 5
+      1 @jit
+      2 def g(x):
+      3     return (x > 0) and (x < 3)
+      4
+----> 5 g(2)
+
+    [... skipping hidden 5 frame]
+
+Cell In[3], line 3, in g(x)
+      1 @jit
+      2 def g(x):
+----> 3     return (x > 0) and (x < 3)
+
+    [... skipping hidden 1 frame]
+
+File ~/Dev/jax-play/.venv/lib/python3.14/site-packages/jax/_src/core.py:1889, in concretization_function_error.<locals>.error(self, arg)
+   1888 def error(self, arg):
+-> 1889   raise TracerBoolConversionError(arg)
+
+TracerBoolConversionError: Attempted boolean conversion of traced array with shape bool[].
+The error occurred while tracing the function g at /tmp/ipykernel_2697195/458097058.py:1 for jit. This concrete value was not available in Python because it depends on the value of the argument x.
+See https://docs.jax.dev/en/latest/errors.html#jax.errors.TracerBoolConversionError
+
+Essentially, the call of __gt__ on the placeholder is what triggered the error.
+
+
+Note: JAX compiles to XLA for execution.  We can even thing of it as a rather messy
+Python to XLA compiler.
+
+
+This is interesting.  They give this example:
+
+@jit
+def f(x):
+  return x.reshape(jnp.array(x.shape).prod())
+
+Although x.shape is static (because the tracer is JitTracer(float32[2,3]), so its
+shape (confirmed with print) is x.shape = (2, 3), feeding it through array then prod
+makes it into a tracer.  One might imagine that JAX could actually handle that, but
+I guess it would complicate things.  They suggest using numpy:
+
+@jit
+def f(x):
+  return x.reshape((np.prod(x.shape),))
+
+...which avoids the problem -- though of course it means that the reshape is now
+baked in to the specific shape it was called with -- not an issue with this example,
+but I can imagine cases where the np.XXXX might return different values, and that
+would break JITing.
+
+
+Final note: jax.grad also uses tracers!  That's how it builds up the computation
+graph to to the backward pass over.  However, they're concrete tracers rather than
+the abstract ones the the JIT uses, which means that they are less fussy.  Which makes
+sense; if you have eg.
+
+def divide(x, y):
+  return x / y if y >= 1. else 0.
+
+...then you can't JIT it due to that y > 1, but you can store a computation
+graph in order to do a backward pass because it was a concrete set of steps that were
+taken.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
