@@ -623,6 +623,27 @@ OK, that one was tough.  Putting a pin in it for now.
 
 
 
+Control flow and logical operators with JIT
+
+Finally a nice definition of what the whole "static" means in the
+context of arguments:
+
+The path may depend on the shape or dtype of the inputs, and the function is re-compiled every time it is called on an input with a new shape or dtype.
+
+That makes perfect sense and explains the results we got earlier.
+Having the path depend on the value is different; the
+static_argnums stuff is a workaround for that, saying "this specific
+value is one that we want to force recompile for if it changes".
+And because of the caching of the compiled traces, we get bitten
+if there are lots of possible values.
+
+The rest of this section is useful but not worth noting about, as
+it's either things that I'll use later (reference stuff) or stuff
+that we've already covered.
+
+
+
+
 
 
 
