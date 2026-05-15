@@ -13,9 +13,9 @@ class XORModel(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.layer1 = torch.nn.Linear(2, 2, True)
+        self.layer1 = torch.nn.Linear(2, 2, bias=True)
         self.layer1_activation = torch.nn.Sigmoid()
-        self.layer2 = torch.nn.Linear(2, 1, True)
+        self.layer2 = torch.nn.Linear(2, 1, bias=True)
         self.layer2_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
