@@ -35,11 +35,11 @@ def forward(layers, inputs):
     return x
 
 
-def step(layers, grad, learning_rate):
+def step(layers, grads, learning_rate):
     layers = jax.tree.map(
         lambda p, g: p - g * learning_rate,
         layers,
-        grad
+        grads,
     )
     return layers
 
@@ -66,10 +66,10 @@ def main():
 
         for x, y in data:
 
-            loss, grad = jax.value_and_grad(calculate_loss)(layers, jnp.array(x), jnp.array(y))
+            loss, grads = jax.value_and_grad(calculate_loss)(layers, jnp.array(x), jnp.array(y))
             losses.append(loss.item())
 
-            layers = step(layers, grad, learning_rate)
+            layers = step(layers, grads, learning_rate)
 
         if epoch % 100 == 0:
             avg_loss = sum(losses) / len(losses)
