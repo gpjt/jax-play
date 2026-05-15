@@ -9,4 +9,5 @@ dependencies = [
     "jupyter>=1.1.1",
     "matplotlib>=3.10.9",
     "rich>=15.0.0",
+    "torch>=2.12.0",
 ]
