@@ -24,7 +24,8 @@ class XORModel(torch.nn.Module):
         return output
 
 
-def calculate_loss(result, target):
+def calculate_loss(model, inputs, target):
+    result = model(inputs)
     return ((result - target) ** 2).mean()
 
 
@@ -47,8 +48,7 @@ def main():
         for x, y in data:
             model.zero_grad()
 
-            result = model(torch.tensor(x))
-            loss = calculate_loss(result, torch.tensor(y))
+            loss = calculate_loss(model, torch.tensor(x), torch.tensor(y))
             loss.backward()
             losses.append(loss.item())
 

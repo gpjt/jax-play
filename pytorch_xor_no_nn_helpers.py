@@ -46,7 +46,8 @@ def step(layers, learning_rate):
                     p -= p.grad * learning_rate
 
 
-def calculate_loss(result, target):
+def calculate_loss(layers, inputs, target):
+    result = forward(layers, inputs)
     return ((result - target) ** 2).mean()
 
 
@@ -66,8 +67,7 @@ def main():
         for x, y in data:
             zero_grad(layers)
 
-            result = forward(layers, torch.tensor(x))
-            loss = calculate_loss(result, torch.tensor(y))
+            loss = calculate_loss(layers, torch.tensor(x), torch.tensor(y))
             loss.backward()
             losses.append(loss.item())
 
