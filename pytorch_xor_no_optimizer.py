@@ -28,6 +28,13 @@ def calculate_loss(result, target):
     return ((result - target) ** 2).mean()
 
 
+def step(model, learning_rate):
+    with torch.no_grad():
+        for p in model.parameters():
+            if p.grad is not None:
+                p -= p.grad * learning_rate
+
+
 def main():
     torch.manual_seed(42)
 
@@ -45,10 +52,7 @@ def main():
             loss.backward()
             losses.append(loss.item())
 
-            with torch.no_grad():
-                for p in model.parameters():
-                    if p.grad is not None:
-                        p -= p.grad * learning_rate
+            step(model, learning_rate)
 
         if epoch % 100 == 0:
             avg_loss = sum(losses) / len(losses)

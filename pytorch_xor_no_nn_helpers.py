@@ -38,6 +38,14 @@ def zero_grad(layers):
                 p.grad.zero_()
 
 
+def step(layers, learning_rate):
+    with torch.no_grad():
+        for layer in layers:
+            for p in (layer["weights"], layer["biases"]):
+                if p.grad is not None:
+                    p -= p.grad * learning_rate
+
+
 def calculate_loss(result, target):
     return ((result - target) ** 2).mean()
 
@@ -63,11 +71,7 @@ def main():
             loss.backward()
             losses.append(loss.item())
 
-            with torch.no_grad():
-                for layer in layers:
-                    for p in (layer["weights"], layer["biases"]):
-                        if p.grad is not None:
-                            p -= p.grad * learning_rate
+            step(layers, learning_rate)
 
         if epoch % 100 == 0:
             avg_loss = sum(losses) / len(losses)
